@@ -3,13 +3,11 @@ import json
 import csv
 import threading
 import sched, time
+from db import BTCUSDT, session
 
 s = sched.scheduler(time.time, time.sleep)
 
 def main():
-    with open('bitcoinEachMinute.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Datetime", "Open", "Close", "Low", "High", "Volume"])
     s.enter(0, 1, add_price, argument=(0,))
     s.run()
 
@@ -19,8 +17,6 @@ def jprint(obj):
     print(text)
 
 #jprint(response.json())
-
-
 
 def add_price(lastPrice):
     response = requests.get("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m")
@@ -34,10 +30,16 @@ def add_price(lastPrice):
 
     print(closePrice)
 
-    with open('bitcoinEachMinute.csv', 'a', newline='') as file:
-        writer = csv.writer(file)
-
-        writer.writerow([fetchTime, openPrice, closePrice, lowPrice, highPrice, volume])
+    newentry = BTCUSDT(
+        datetime=fetchTime,
+        open=openPrice,
+        close=closePrice,
+        low=lowPrice,
+        high=highPrice,
+        volume=volume
+    )
+    session.add(newentry)
+    session.commit()
 
     s.enter(60, 1, add_price,argument=(lastPrice,)) #run function again in 1 minute
 
